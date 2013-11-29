@@ -1,0 +1,52 @@
+!!!
+html
+  head
+    // bootstrap theme
+    link(rel='stylesheet', href='bootstrap/css/bootstrap.css')
+
+    // non-component javascript libs
+    script(src='js/angular.js')
+
+    // my actual code
+    link(rel='stylesheet', href='css/index.css')
+    script(src='js/index.js')
+    script.
+      window.addEventListener('load', function () {
+        require('prototype')(document)
+      })
+  body
+    div#main(ng-controller="MainController")
+      .top-bar
+        label.equalize.checkbox
+          input(type='checkbox', ng-model='logEqualize')
+          | Log Equalization
+        .loading(ng-show='loading')
+          img(src='images/loading-purple.gif')
+        h3.title Fractal Flames
+      .high-back(ng-show="showingHD", ng-click="hideHD()")
+      .high-res(ng-show="showingHD")
+        .options
+          .btn-group
+            .btn.btn-primary(ng-class="{active: hdRes === res.num}"
+                            ng-click="setHDRes(res.num)"
+                            ng-repeat="res in hdResolutions") {{ res.text }}
+          | Number of points
+          .btn.btn-primary(ng-class="{active: hdLog}", ng-click="toggleHdLog()") Log Equalization
+          | Loading time {{ hdLoadtime }}
+        img(src='images/loading-white.gif', ng-show='loadingHD')
+        img(ng-src="{{ HighDef ? HighDef : '' }}", ng-click="zoomIn($event)", ng-right-click="zoomOut($event)")
+        a(target="_blank", href="/mega-def/{{ makeKey() }}") Mega Definition
+      #content
+        .left-side
+          .main-image(ng-click="showHD()")
+            img(ng-src="{{ MainImage }}")
+          ul.formulas
+            li(ng-repeat="func in MainFormulas") {{ Formulas[func.Num].Text }}
+        .child-images
+          .children
+            .child(ng-repeat="fractal in ChildImages", ng-click="useChild(fractal)")
+              img(ng-src="{{ fractal.Image || 'images/loading.gif' }}")
+              span.checked
+                i.glyphicon.glyphicon-ok(ng-hide="fractal.Disabled")
+              span.formula {{ fractal.Text }}
+    

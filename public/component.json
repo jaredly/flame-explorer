@@ -1,0 +1,19 @@
+{
+  "name": "prototype",
+  "repo": "test/prototype",
+  "description": "Make with JazzUI",
+  "version": "0.0.1",
+  "keywords": [],
+  "dependencies": {
+    "jaredly/xon": "*",
+    "visionmedia/superagent": "*",
+    "jkroso/position": "*"
+  },
+  "development": {},
+  "license": "MIT",
+  "main": "index.js",
+  "scripts": [
+    "index.js"
+  ],
+  "remotes": []
+}
