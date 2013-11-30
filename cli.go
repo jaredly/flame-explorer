@@ -2,18 +2,19 @@ package main
 
 import (
 	"github.com/codegangsta/cli"
-	"github.com/kless/term"
 	"github.com/jaredly/goflam3"
+	"github.com/kless/term"
 	"image"
 	"image/png"
 	"io"
 	"os"
+	"strconv"
 )
 
 func cliRender(c *cli.Context) {
 	var config flame.Config
-	config.Width = 400
-	config.Height = 400
+	config.Dims.Width = 400
+	config.Dims.Height = 400
 	config.Iterations = 10 * 1000 * 1000
 	config.Functions = []flame.FunConfig{
 		{5},
@@ -26,11 +27,15 @@ func cliRender(c *cli.Context) {
 		flame.ReadConfig(c.String("config"), &config)
 	}
 	if c.Int("width") != 0 {
-		config.Width = c.Int("width")
+		config.Dims.Width = c.Int("width")
 	}
 	if c.Int("height") != 0 {
-		config.Height = c.Int("height")
+		config.Dims.Height = c.Int("height")
 	}
+	config.Dims.X, _ = strconv.ParseFloat(c.String("x"), 64)
+	config.Dims.Y, _ = strconv.ParseFloat(c.String("y"), 64)
+	config.Dims.Xscale, _ = strconv.ParseFloat(c.String("xscale"), 64)
+	config.Dims.Yscale, _ = strconv.ParseFloat(c.String("yscale"), 64)
 	if c.Int("iterations") != 0 {
 		config.Iterations = c.Int("iterations")
 	}
@@ -78,6 +83,10 @@ func main() {
 				// these can also be set by the config file
 				cli.IntFlag{"width, w", 0, "Width of the image in px"},
 				cli.IntFlag{"height", 0, "Height of the image in px"},
+				cli.StringFlag{"x", "0", "X translation"},
+				cli.StringFlag{"y", "0", "Y translation"},
+				cli.StringFlag{"xscale", "1", "X scale"},
+				cli.StringFlag{"yscale", "1", "Y scale"},
 				cli.IntFlag{"iterations, i", 0, "Number of iterations to execute"},
 				cli.IntSliceFlag{"function, f", &nofuncs, "Functions to use"},
 			},

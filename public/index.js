@@ -16,18 +16,24 @@ function makeKey(funcs) {
 
 angular.module('MyApp', [])
   .factory('highDef', function () {
-    return function (key, res, log, cb) {
+    return function (key, res, log, pos, cb) {
       var lkey = 'flame-hd-' + key + '-' + res + (log ? '-log' : '')
-      if (window.localStorage[lkey]) {
+      if (pos.x != 0 || pos.y != 0 || pos.xscale != 1 || pos.yscale == 1) {
+	lkey = null
+      }
+      if (lkey && window.localStorage[lkey]) {
         return cb(window.localStorage[lkey], 'cached', true)
       }
       var start = new Date().getTime()
-      request.get('/high-def?funcs=' + key + '&res=' + res + (log ? '&log=true' : ''))
+      var postext = '&x=' + pos.x + '&y=' + pos.y + '&xscale=' + pos.xscale + '&yscale=' + pos.yscale
+      request.get('/high-def?funcs=' + key + '&res=' + res + (log ? '&log=true' : '') + postext)
         .end(function (req) {
-          try {
-            window.localStorage[lkey] = req.text
-          } catch (e) {}
-          cb(req.text, (new Date().getTime() - start) / 1000)
+	  if (lkey) {
+	    try {
+	      window.localStorage[lkey] = req.text
+	    } catch (e) {}
+	  }
+          cb(req.text, (new Date().getTime() - start) / 1000 + 's')
         })
     }
   })
@@ -111,12 +117,32 @@ angular.module('MyApp', [])
     $scope.loadingHD = false
     $scope.hdRes = 100*1000
     $scope.hdLog = false
+    $scope.pos = {
+      x: 0,
+      y: 0,
+      xscale: 1,
+      yscale: 1
+    }
+    var loadingTimes = {
+      100000: 200,
+      1000000: 800,
+      10000000: 3.5 * 1000
+    }
 
     $scope.refreshHD = function () {
-      highDef(makeKey($scope.MainFormulas), $scope.hdRes, $scope.hdLog, function (data, time, cached) {
+      $scope.loadingHD = true
+      var start = new Date().getTime()
+      var p = document.getElementById('hd-progress')
+      var tid = setInterval(function () {
+	p.style.width = (new Date().getTime() - start)*100/loadingTimes[$scope.hdRes] + '%';
+      }, 50)
+      highDef(makeKey($scope.MainFormulas), $scope.hdRes, $scope.hdLog, $scope.pos, function (data, time, cached) {
+	clearTimeout(tid)
         $scope.HighDef = data
 	$scope.hdLoadtime = time
+	loadingTimes[$scope.hdRes] = new Date().getTime() - start
 	$scope.loadingHD = false
+	p.style.width = '0%'
         if (!cached) $scope.$digest()
       })
     }
@@ -141,17 +167,41 @@ angular.module('MyApp', [])
     $scope.showHD = function () {
       if (!$scope.MainFormulas.length) return
       $scope.showingHD = true
-      $scope.loadingHD = true
+      $scope.hdRes = 1000 * 100
+      $scope.resetZoom()
+    }
+
+    $scope.resetZoom = function () {
+      $scope.pos = {
+	x: 0,
+	y: 0,
+	xscale: 1,
+	yscale: 1
+      }
       $scope.refreshHD()
     }
 
     $scope.zoomIn = function ($event) {
       var pos = localPos($event)
       console.log('you clicked', pos)
+      var x = pos.left/800-.5
+        , y = -pos.top/800+.5
+      console.log('rel', x, y)
+
+      $scope.pos.x += x/$scope.pos.xscale
+      $scope.pos.y += y/$scope.pos.yscale
+      $scope.pos.xscale *= 1.5
+      $scope.pos.yscale *= 1.5
+      $scope.refreshHD();
     }
     $scope.zoomOut = function ($event) {
       var pos = localPos($event)
       console.log('you zoom out', pos)
+      $scope.pos.xscale /= 1.5
+      $scope.pos.yscale /= 1.5
+      $scope.pos.x /= 1.5
+      $scope.pos.y /= 1.5
+      $scope.refreshHD();
     }
 
     $scope.hideHD = function () {

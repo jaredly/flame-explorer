@@ -11,6 +11,7 @@ import (
 	"image"
 	"image/png"
 	"net/http"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -103,8 +104,12 @@ func RenderChildren(width, height, iterations int, funs []flame.FunConfig) []Web
 			im = blankImage(width, height)
 		} else {
 			im, _ = flame.Flame(flame.Config{
-				Width:      width,
-				Height:     height,
+				Dims: flame.Dims{
+					Width:  width,
+					Height: height,
+					Xscale: 1,
+					Yscale: 1,
+				},
 				Iterations: iterations,
 				Functions:  funs,
 			})
@@ -136,27 +141,40 @@ func getFunsFromParam(param string) []flame.FunConfig {
 
 type Cachier map[string]InitialResponse
 
+func getFloat(lst []string, def float64) float64 {
+	if 1 == len(lst) {
+		if p, err := strconv.ParseFloat(lst[0], 64); err == nil {
+			return p
+		}
+	}
+	return def
+}
+
 func getNum(lst []string, def int) int {
-  num := def
-  var err error
-  if 1 == len(lst) {
-    num, err = strconv.Atoi(lst[0])
-    if err != nil {
-      num = def
-    }
-  }
-  return num
+	num := def
+	var err error
+	if 1 == len(lst) {
+		num, err = strconv.Atoi(lst[0])
+		if err != nil {
+			num = def
+		}
+	}
+	return num
 }
 
 func getBool(lst []string, def bool) bool {
-  if 1 == len(lst) {
-    if lst[0] == "false" {
-      def = false
-    } else {
-      def = true
-    }
-  }
-  return def
+	if 1 == len(lst) {
+		if lst[0] == "false" {
+			def = false
+		} else {
+			def = true
+		}
+	}
+	return def
+}
+
+func base64Request(req *http.Request) bool {
+	return 1 == len(req.Header["accept-encoding"]) && req.Header["accept-encoding"][0] == "base64"
 }
 
 func cliWebserver(c *cli.Context) {
@@ -176,10 +194,14 @@ func cliWebserver(c *cli.Context) {
 			im = blankImage(300, 300)
 		} else {
 			im, _ = flame.Flame(flame.Config{
-				Width:      300,
-				Height:     300,
-				Iterations: 1000 * 1000,
-				Functions:  funs,
+				Dims: flame.Dims{
+					Width:  300,
+					Height: 300,
+					Xscale: 1,
+					Yscale: 1,
+				},
+				Iterations:  1000 * 1000,
+				Functions:   funs,
 				LogEqualize: getBool(req.Form["log"], false),
 			})
 		}
@@ -192,6 +214,45 @@ func cliWebserver(c *cli.Context) {
 		res, _ := json.Marshal(response)
 		return string(res)
 	})
+
+	m.Get("/render-one", func(resrw http.ResponseWriter, req *http.Request) {
+		var funs []flame.FunConfig
+		req.ParseForm()
+		if 1 == len(req.Form["funcs"]) {
+			funs = getFunsFromParam(req.Form["funcs"][0])
+		}
+		width := getNum(req.Form["width"], 800)
+		height := getNum(req.Form["height"], 800)
+		var im *image.RGBA
+		if funs == nil || len(funs) == 0 {
+			im = blankImage(width, height)
+		} else {
+			im, _ = flame.Flame(flame.Config{
+				Dims: flame.Dims{
+					Width:  width,
+					Height: height,
+					X:      getFloat(req.Form["x"], 0),
+					Xscale: getFloat(req.Form["xscale"], 1),
+					Y:      getFloat(req.Form["y"], 0),
+					Yscale: getFloat(req.Form["yscale"], 1),
+				},
+				Iterations:  getNum(req.Form["res"], 1000*100),
+				Functions:   funs,
+				LogEqualize: getBool(req.Form["log"], false),
+			})
+		}
+		defer runtime.GC()
+		resrw.Header().Set("Content-Type", "image/png")
+		if base64Request(req) {
+			resrw.Header().Set("Content-Encoding", "base64")
+			bytes.NewBufferString(imageToBase64(im)).WriteTo(resrw)
+		} else {
+			var b bytes.Buffer
+			png.Encode(&b, im)
+			b.WriteTo(resrw)
+		}
+	})
+
 	m.Get("/high-def", func(req *http.Request) string {
 		var funs []flame.FunConfig
 		req.ParseForm()
@@ -205,14 +266,53 @@ func cliWebserver(c *cli.Context) {
 			im = blankImage(width, height)
 		} else {
 			im, _ = flame.Flame(flame.Config{
-				Width:      width,
-				Height:     height,
-				Iterations: getNum(req.Form["res"], 1000 * 1000 * 10),
-				Functions:  funs,
+				Dims: flame.Dims{
+					Width:  width,
+					Height: height,
+					X:      getFloat(req.Form["x"], 0),
+					Xscale: getFloat(req.Form["xscale"], 1),
+					Y:      getFloat(req.Form["y"], 0),
+					Yscale: getFloat(req.Form["yscale"], 1),
+				},
+				Iterations:  getNum(req.Form["res"], 1000*1000*10),
+				Functions:   funs,
 				LogEqualize: getBool(req.Form["log"], false),
 			})
 		}
+		defer runtime.GC()
 		return imageToBase64(im)
+	})
+	m.Get("/mega-def", func(resrw http.ResponseWriter, req *http.Request) {
+		var funs []flame.FunConfig
+		req.ParseForm()
+		if 1 == len(req.Form["funcs"]) {
+			funs = getFunsFromParam(req.Form["funcs"][0])
+		}
+		width := getNum(req.Form["width"], 1600)
+		height := getNum(req.Form["height"], 1600)
+		var im *image.RGBA
+		if funs == nil || len(funs) == 0 {
+			im = blankImage(width, height)
+		} else {
+			im, _ = flame.Flame(flame.Config{
+				Dims: flame.Dims{
+					Width:  width,
+					Height: height,
+					X:      getFloat(req.Form["x"], 0),
+					Xscale: getFloat(req.Form["xscale"], 1),
+					Y:      getFloat(req.Form["y"], 0),
+					Yscale: getFloat(req.Form["yscale"], 1),
+				},
+				Iterations:  getNum(req.Form["res"], 1000*1000*100),
+				Functions:   funs,
+				LogEqualize: getBool(req.Form["log"], false),
+			})
+		}
+		defer runtime.GC()
+		resrw.Header().Set("Content-Type", "image/png")
+		var b bytes.Buffer
+		png.Encode(&b, im)
+		b.WriteTo(resrw)
 	})
 	m.Run()
 }

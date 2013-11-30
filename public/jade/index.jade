@@ -26,16 +26,20 @@ html
       .high-back(ng-show="showingHD", ng-click="hideHD()")
       .high-res(ng-show="showingHD")
         .options
+          | Quality
           .btn-group
             .btn.btn-primary(ng-class="{active: hdRes === res.num}"
                             ng-click="setHDRes(res.num)"
                             ng-repeat="res in hdResolutions") {{ res.text }}
-          | Number of points
           .btn.btn-primary(ng-class="{active: hdLog}", ng-click="toggleHdLog()") Log Equalization
-          | Loading time {{ hdLoadtime }}
-        img(src='images/loading-white.gif', ng-show='loadingHD')
+          span.load-time(ng-hide='loadingHD') Loading time {{ hdLoadtime }}
+          .progress(ng-show='loadingHD')
+            #hd-progress.progress-bar.progress-bar-success(style='width: 0%')
         img(ng-src="{{ HighDef ? HighDef : '' }}", ng-click="zoomIn($event)", ng-right-click="zoomOut($event)")
-        a(target="_blank", href="/mega-def/{{ makeKey() }}") Mega Definition
+        .bottom
+          a.btn.btn-success(target="_blank", href="/mega-def?funcs={{ makeKey() }}") Download Mega Definition
+          | Zoom: {{ pos.xscale }} X: {{ pos.x | number:4 }} Y: {{ pos.y | number:4 }}
+          .btn.btn-default(ng-click='resetZoom()') Reset Zoom
       #content
         .left-side
           .main-image(ng-click="showHD()")
