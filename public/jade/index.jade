@@ -17,9 +17,15 @@ html
   body
     div#main(ng-controller="MainController")
       .top-bar
-        label.equalize.checkbox
+        //label.equalize.checkbox
           input(type='checkbox', ng-model='logEqualize')
           | Log Equalization
+        .options
+          | Quality
+          .btn-group
+            .btn.btn-primary(ng-class="{active: res === my.num}"
+                            ng-click="setRes(my.num)"
+                            ng-repeat="my in resolutions") {{ my.text }}
         .loading(ng-show='loading')
           img(src='images/loading-purple.gif')
         h3.title Fractal Flames
@@ -31,26 +37,28 @@ html
             .btn.btn-primary(ng-class="{active: hdRes === res.num}"
                             ng-click="setHDRes(res.num)"
                             ng-repeat="res in hdResolutions") {{ res.text }}
-          .btn.btn-primary(ng-class="{active: hdLog}", ng-click="toggleHdLog()") Log Equalization
+          // .btn.btn-primary(ng-class="{active: hdLog}", ng-click="toggleHdLog()") Log Equalization
           span.load-time(ng-hide='loadingHD') Loading time {{ hdLoadtime }}
           .progress(ng-show='loadingHD')
             #hd-progress.progress-bar.progress-bar-success(style='width: 0%')
-        img(ng-src="{{ HighDef ? HighDef : '' }}", ng-click="zoomIn($event)", ng-right-click="zoomOut($event)")
+        img(ng-src="/render-one?funcs={{ makeKey() }}&width=800&height=800&x={{ pos.x }}&y={{ pos.y }}&xscale={{ pos.xscale }}&yscale={{ pos.yscale }}&res={{ hdRes }}", ng-click="zoomIn($event)", ng-right-click="zoomOut($event)", ng-if="showingHD", ng-loaded="hdLoaded()")
         .bottom
-          a.btn.btn-success(target="_blank", href="/mega-def?funcs={{ makeKey() }}") Download Mega Definition
+          a.btn.btn-success(target="_blank", href="/render-one?width=1600&height=16000&x={{ pos.x }}&y={{ pos.y }}&xscale={{ pos.xscale }}&yscale={{ pos.yscale }}&res=100000000&funcs={{ makeKey() }}") Download Mega Definition 1600x1600 @ 100m
+          // | (will take ~30 seconds and all your cpu)
           | Zoom: {{ pos.xscale }} X: {{ pos.x | number:4 }} Y: {{ pos.y | number:4 }}
           .btn.btn-default(ng-click='resetZoom()') Reset Zoom
       #content
         .left-side
           .main-image(ng-click="showHD()")
-            img(ng-src="{{ MainImage }}")
+            img(ng-src="/render-one?width=300&height=300&res={{ res * 10 }}&funcs={{ makeKey() }}", ng-loaded="mainLoaded()")
           ul.formulas
-            li(ng-repeat="func in MainFormulas") {{ Formulas[func.Num].Text }}
+            li(ng-repeat="func in functions", ng-show="func.Enabled") {{ func.Text }}
         .child-images
           .children
-            .child(ng-repeat="fractal in ChildImages", ng-click="useChild(fractal)")
-              img(ng-src="{{ fractal.Image || 'images/loading.gif' }}")
-              span.checked
-                i.glyphicon.glyphicon-ok(ng-hide="fractal.Disabled")
-              span.formula {{ fractal.Text }}
+            .child(ng-repeat="func in functions", ng-click="toggle(func)", ng-class="{ enabled: func.Enabled }")
+              img(ng-src="/render-one?width=150&height=150&res={{ res }}&funcs={{ makeChild(func.Num) }}", ng-loaded="childLoaded(func.Num)")
+              // span.checked
+                i.glyphicon.glyphicon-ok(ng-show="func.Enabled")
+              img(ng-src="/preview?func={{ func.Num }}")
+              // span.formula {{ func.Text }}
     

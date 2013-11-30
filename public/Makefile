@@ -17,6 +17,9 @@ serve:
 clean:
 	rm -rf css/index.css index.html components js/index.js
 
+lint:
+	@jshint --verbose *.js *.json
+
 js/angular.js:
 	@wget https://ajax.googleapis.com/ajax/libs/angularjs/1.2.1/angular.js
 	@mv angular.js js

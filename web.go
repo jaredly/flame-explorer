@@ -30,6 +30,7 @@ type WebRender struct {
 	Formulas []flame.FunConfig
 	Disabled bool
 	Text     string
+	Num int
 }
 
 type WebFunc struct {
@@ -120,6 +121,7 @@ func RenderChildren(width, height, iterations int, funs []flame.FunConfig) []Web
 			Time:     time.Since(start),
 			Formulas: funs,
 			Text:     texts[i].Text,
+			Num: i,
 		}
 		using[i] = !using[i]
 	}
@@ -139,7 +141,7 @@ func getFunsFromParam(param string) []flame.FunConfig {
 	return ret
 }
 
-type Cachier map[string]InitialResponse
+type Cachier map[int]*image.RGBA
 
 func getFloat(lst []string, def float64) float64 {
 	if 1 == len(lst) {
@@ -179,8 +181,23 @@ func base64Request(req *http.Request) bool {
 
 func cliWebserver(c *cli.Context) {
 	m := martini.Classic()
-	// cachier := &Cachier{}
-	// m.Map(cachier)
+	cachier := &Cachier{}
+	m.Map(cachier)
+
+	m.Get("/functions", func(resrw http.ResponseWriter, req *http.Request) string {
+		resrw.Header().Set("Content-Type", "application/json")
+		fns := flame.AllVariations()
+		response := make([]map[string]interface{}, len(fns))
+		for i, fn := range fns {
+				response[i] = map[string]interface{}{
+						"Text": fn.Text,
+						"Num": i,
+						"Enabled": false,
+				}
+		}
+		res, _ := json.Marshal(response)
+		return string(res)
+	})
 
 	m.Get("/render", func(resrw http.ResponseWriter, req *http.Request) string {
 		var funs []flame.FunConfig
@@ -211,8 +228,49 @@ func cliWebserver(c *cli.Context) {
 			Formulas:     GetWebFuncs(),
 			ChildImages:  RenderChildren(150, 150, 100*1000, funs),
 		}
+		defer runtime.GC()
 		res, _ := json.Marshal(response)
 		return string(res)
+	})
+
+  m.Get("/preview", func(resrw http.ResponseWriter, req *http.Request, c *Cachier) {
+    vars := flame.AllVariations()
+		req.ParseForm()
+    num := getNum(req.Form["func"], 0)
+    if num >= len(vars) {
+      num = 0
+    }
+		im, ok := (*c)[num]
+		if !ok {
+				im = flame.RenderPreview(200, 200, 20, 20, vars[num].Fn)
+				(*c)[num] = im
+		}
+		resrw.Header().Set("Content-Type", "image/png")
+		resrw.Header().Set("Cache-Control", "public, max-age=2000")
+    if (base64Request(req)) {
+      resrw.Header().Set("Content-Encoding", "base64")
+      bytes.NewBufferString(imageToBase64(im)).WriteTo(resrw)
+    } else {
+      var b bytes.Buffer
+      png.Encode(&b, im)
+      b.WriteTo(resrw)
+    }
+		defer runtime.GC()
+  })
+
+	m.Get("/preview-all", func(resrw http.ResponseWriter, req *http.Request) {
+		im := flame.PreviewAll(200, 200, 20, 20, 4)
+		resrw.Header().Set("Content-Type", "image/png")
+		resrw.Header().Set("Cache-Control", "public, max-age=1000000")
+    if (base64Request(req)) {
+      resrw.Header().Set("Content-Encoding", "base64")
+      bytes.NewBufferString(imageToBase64(im)).WriteTo(resrw)
+    } else {
+      var b bytes.Buffer
+      png.Encode(&b, im)
+      b.WriteTo(resrw)
+    }
+		defer runtime.GC()
 	})
 
 	m.Get("/render-one", func(resrw http.ResponseWriter, req *http.Request) {
@@ -243,6 +301,7 @@ func cliWebserver(c *cli.Context) {
 		}
 		defer runtime.GC()
 		resrw.Header().Set("Content-Type", "image/png")
+		resrw.Header().Set("Cache-Control", "public, max-age=300")
 		if base64Request(req) {
 			resrw.Header().Set("Content-Encoding", "base64")
 			bytes.NewBufferString(imageToBase64(im)).WriteTo(resrw)
@@ -282,37 +341,6 @@ func cliWebserver(c *cli.Context) {
 		defer runtime.GC()
 		return imageToBase64(im)
 	})
-	m.Get("/mega-def", func(resrw http.ResponseWriter, req *http.Request) {
-		var funs []flame.FunConfig
-		req.ParseForm()
-		if 1 == len(req.Form["funcs"]) {
-			funs = getFunsFromParam(req.Form["funcs"][0])
-		}
-		width := getNum(req.Form["width"], 1600)
-		height := getNum(req.Form["height"], 1600)
-		var im *image.RGBA
-		if funs == nil || len(funs) == 0 {
-			im = blankImage(width, height)
-		} else {
-			im, _ = flame.Flame(flame.Config{
-				Dims: flame.Dims{
-					Width:  width,
-					Height: height,
-					X:      getFloat(req.Form["x"], 0),
-					Xscale: getFloat(req.Form["xscale"], 1),
-					Y:      getFloat(req.Form["y"], 0),
-					Yscale: getFloat(req.Form["yscale"], 1),
-				},
-				Iterations:  getNum(req.Form["res"], 1000*1000*100),
-				Functions:   funs,
-				LogEqualize: getBool(req.Form["log"], false),
-			})
-		}
-		defer runtime.GC()
-		resrw.Header().Set("Content-Type", "image/png")
-		var b bytes.Buffer
-		png.Encode(&b, im)
-		b.WriteTo(resrw)
-	})
+
 	m.Run()
 }

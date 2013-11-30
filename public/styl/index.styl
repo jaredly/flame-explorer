@@ -10,6 +10,11 @@ body
     background-color: #7C00AC
     color: white
 
+		.options
+      float: left
+      .btn-group
+        margin: 0 20px
+
     .title
       margin: 0
       padding: 0
@@ -39,7 +44,7 @@ body
       margin: 20px 0
       padding: 0
       font-weight: bold
-      font-size: 24px
+      font-size: 16px
       
       li
         padding: 5px 15px
@@ -100,17 +105,25 @@ body
     .children
       .child
         padding: 5px
-        margin-right: 15px
+        // margin-right: 15px
         cursor: pointer
-        min-width: 700px
+        // min-width: 50%
         float: left
+        margin: 3px
+        border: 5px solid white
+
+        &.enabled
+          border-color: #A000A7
+
+          &:hover
+            border-color: #999
   
         &:hover
           background-color: #ccc
         
         .formula
           padding: 10px
-          font-size: 30px
+          font-size: 15px
         
         .checked
           color: green

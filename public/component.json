@@ -7,7 +7,8 @@
   "dependencies": {
     "jaredly/xon": "*",
     "visionmedia/superagent": "*",
-    "jkroso/position": "*"
+    "jkroso/position": "*",
+    "lodash/lodash": "*"
   },
   "development": {},
   "license": "MIT",
