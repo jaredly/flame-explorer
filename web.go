@@ -287,6 +287,10 @@ func cliWebserver(c *cli.Context) {
 		if height > 800 {
 		  height = 800
 		}
+		iterations := getNum(req.Form["res"], 1000*100)
+		if iterations > 10*1000*1000 {
+		  iterations = 10 * 1000 * 1000
+		}
 		var im *image.RGBA
 		if funs == nil || len(funs) == 0 {
 			im = blankImage(width, height)
@@ -300,7 +304,7 @@ func cliWebserver(c *cli.Context) {
 					Y:      getFloat(req.Form["y"], 0),
 					Yscale: getFloat(req.Form["yscale"], 1),
 				},
-				Iterations:  getNum(req.Form["res"], 1000*100),
+				Iterations:  iterations,
 				Functions:   funs,
 				LogEqualize: getBool(req.Form["log"], false),
 			})
