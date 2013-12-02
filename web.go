@@ -283,10 +283,10 @@ func cliWebserver(c *cli.Context) {
 		if width > 800 {
 		  width = 800
 		}
+		height := getNum(req.Form["height"], 800)
 		if height > 800 {
 		  height = 800
 		}
-		height := getNum(req.Form["height"], 800)
 		var im *image.RGBA
 		if funs == nil || len(funs) == 0 {
 			im = blankImage(width, height)
