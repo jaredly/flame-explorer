@@ -1,0 +1,1 @@
+web: flame-explorer serve
