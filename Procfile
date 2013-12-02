@@ -1,1 +1,1 @@
-web: flame-explorer serve
+web: ./flame-explorer serve
