@@ -30,7 +30,7 @@ type WebRender struct {
 	Formulas []flame.FunConfig
 	Disabled bool
 	Text     string
-	Num int
+	Num      int
 }
 
 type WebFunc struct {
@@ -121,7 +121,7 @@ func RenderChildren(width, height, iterations int, funs []flame.FunConfig) []Web
 			Time:     time.Since(start),
 			Formulas: funs,
 			Text:     texts[i].Text,
-			Num: i,
+			Num:      i,
 		}
 		using[i] = !using[i]
 	}
@@ -189,11 +189,11 @@ func cliWebserver(c *cli.Context) {
 		fns := flame.AllVariations()
 		response := make([]map[string]interface{}, len(fns))
 		for i, fn := range fns {
-				response[i] = map[string]interface{}{
-						"Text": fn.Text,
-						"Num": i,
-						"Enabled": false,
-				}
+			response[i] = map[string]interface{}{
+				"Text":    fn.Text,
+				"Num":     i,
+				"Enabled": false,
+			}
 		}
 		res, _ := json.Marshal(response)
 		return string(res)
@@ -233,43 +233,45 @@ func cliWebserver(c *cli.Context) {
 		return string(res)
 	})
 
-  m.Get("/preview", func(resrw http.ResponseWriter, req *http.Request, c *Cachier) {
-    vars := flame.AllVariations()
+	m.Get("/preview", func(resrw http.ResponseWriter, req *http.Request, c *Cachier) {
+		vars := flame.AllVariations()
 		req.ParseForm()
-    num := getNum(req.Form["func"], 0)
-    if num >= len(vars) {
-      num = 0
-    }
+		num := getNum(req.Form["func"], 0)
+		if num >= len(vars) {
+			num = 0
+		}
+		lines := getNum(req.Form["lines"], 20)
+		width := getNum(req.Form["width"], 200)
 		im, ok := (*c)[num]
 		if !ok {
-				im = flame.RenderPreview(200, 200, 20, 20, vars[num].Fn)
-				(*c)[num] = im
+			im = flame.RenderPreview(width, width, lines, lines, vars[num].Fn)
+			(*c)[num] = im
 		}
 		resrw.Header().Set("Content-Type", "image/png")
 		resrw.Header().Set("Cache-Control", "public, max-age=2000")
-    if (base64Request(req)) {
-      resrw.Header().Set("Content-Encoding", "base64")
-      bytes.NewBufferString(imageToBase64(im)).WriteTo(resrw)
-    } else {
-      var b bytes.Buffer
-      png.Encode(&b, im)
-      b.WriteTo(resrw)
-    }
+		if base64Request(req) {
+			resrw.Header().Set("Content-Encoding", "base64")
+			bytes.NewBufferString(imageToBase64(im)).WriteTo(resrw)
+		} else {
+			var b bytes.Buffer
+			png.Encode(&b, im)
+			b.WriteTo(resrw)
+		}
 		defer runtime.GC()
-  })
+	})
 
 	m.Get("/preview-all", func(resrw http.ResponseWriter, req *http.Request) {
 		im := flame.PreviewAll(200, 200, 20, 20, 4)
 		resrw.Header().Set("Content-Type", "image/png")
 		resrw.Header().Set("Cache-Control", "public, max-age=1000000")
-    if (base64Request(req)) {
-      resrw.Header().Set("Content-Encoding", "base64")
-      bytes.NewBufferString(imageToBase64(im)).WriteTo(resrw)
-    } else {
-      var b bytes.Buffer
-      png.Encode(&b, im)
-      b.WriteTo(resrw)
-    }
+		if base64Request(req) {
+			resrw.Header().Set("Content-Encoding", "base64")
+			bytes.NewBufferString(imageToBase64(im)).WriteTo(resrw)
+		} else {
+			var b bytes.Buffer
+			png.Encode(&b, im)
+			b.WriteTo(resrw)
+		}
 		defer runtime.GC()
 	})
 
