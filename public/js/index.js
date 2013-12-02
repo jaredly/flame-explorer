@@ -9161,7 +9161,7 @@ angular.module('MyApp', [])\n\
     {num: 1000*100, text: '100k'},\n\
     {num: 1000*1000, text: '1m'},\n\
     {num: 1000*1000*10, text: '10m'},\n\
-    {num: 1000*1000*100, text: '100m'}\n\
+    //{num: 1000*1000*100, text: '100m'}\n\
   ]\n\
   $scope.loadingHD = false\n\
   $scope.hdRes = 1000*1000\n\
